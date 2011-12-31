@@ -1,0 +1,165 @@
+<% @last_bills = query do %>
+  select
+    account as "Account",
+    xtn_date as "Last Paid",
+    amount as "Amount"
+  from
+    ledger
+  where
+    (account, xtn_date) in (
+      select
+        account,
+        max(xtn_date) as xtn_date
+      from
+        ledger
+      where
+        account ~ 'Expenses:(Utils|Cable|Rent)'
+        and account != 'Expenses:Utils:Water'
+        and xtn_date <= :to
+      group by
+        account
+    )
+    and amount > 0
+  order by
+    account
+<% end %>
+
+<% @current_accounts = query do %>
+ with current_accounts as (select
+     account,
+     bank - uncleared as bank,
+     virtual as real,
+     uncleared as uncleared
+ from (
+ select
+     account,
+     sum(amount) as virtual,
+     sum(case when not virtual then amount else 0 end) as bank,
+     sum(case when not cleared then amount else 0 end) as uncleared
+ from
+     ledger
+ where
+     account in ('Assets:Schwab:Checking', 'Liabilities:Amex')
+     and xtn_date <= :to
+ group by
+     account
+ ) x
+ order by
+     account
+ )
+ select
+     account as "Account",
+     bank as "Bank",
+     real as "Real",
+     uncleared as "Uncleared"
+ from current_accounts
+ union all
+ select
+     'Total' as "Account",
+     sum(bank) as "Bank",
+     sum(real) as "Real",
+     sum(uncleared) as "Uncleared"
+ from current_accounts    
+<% end %>
+<% @emergency_fund = query do %>
+ select
+     emergency_fund as "Emergency Fund",
+     expenses as "Trailing 12 Month Expenses",
+     emergency_fund / expenses as "Months"
+ from (
+     select
+         xtn_month,
+         sum(amount) over (rows unbounded preceding) as emergency_fund
+     from
+         ledger
+     where
+         account = 'Assets:Funds:Emergency'
+     order by
+         xtn_month
+ ) em
+ inner join (
+     select
+         xtn_month,
+         avg(amount) over (rows 12 preceding) as expenses
+     from (
+         select
+             xtn_month,
+             sum(amount) as amount
+         from
+             ledger
+         where
+             account ~ 'Expenses'
+             and account !~ 'Depreciation'
+             and account !~ 'Taxes'
+             and account !~ 'Interest'
+             and account !~ 'Insurance'
+             and account !~ 'Travel'
+             and not virtual
+         group by
+             xtn_month
+     ) x
+     order by
+         xtn_month
+ ) ex using (xtn_month)
+ order by xtn_month desc limit 1
+<% end %>
+
+<% @fund_levels = query do %>
+ select
+     account as "Account",
+     sum(amount) as "Balance"
+ from
+     ledger
+ where
+     account ~ 'Assets:Funds'
+ group by
+     account
+ order by
+     account
+<% end %>
+
+<% @uncleared = query do %>
+ select
+     xtn_date as "Date",
+     note as "Payee",
+     account as "Account",
+     amount as "Amount"
+ from
+     ledger
+ where
+     not cleared
+     and xtn_date between :from and :to
+     and account in ('Assets:Schwab:Checking', 'Liabilities:Amex')
+ order by
+     xtn_date
+<% end %>
+
+<div class="page-header">
+  <h1>Ledger Web</h1>
+</div>
+<div class="row">
+  <div class="span8">
+    <h3>Last Bills</h3>
+    <%= table(@last_bills) %>
+  </div>
+  <div class="span8">
+    <h3>Current Accounts</h3>
+    <%= table(@current_accounts) %>
+  </div>
+</div>
+<div class="row">
+  <div class="span8">
+    <h3>Fund Levels</h3>
+    <%= table(@fund_levels) %>
+  </div>
+  <div class="span8">
+    <h3>Emergency Fund Longevity</h3>
+    <%= table(@emergency_fund) %>
+  </div>
+</div>
+<div class="row">
+  <div class="span16">
+    <h3>Uncleared Transactions</h3>
+    <%= table @uncleared %>
+  </div>
+</div>

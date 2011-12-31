@@ -1,0 +1,39 @@
+<% @report = query({:pivot => "Month", :pivot_sort_order => 'desc'} ) do %>
+    select
+        account as "Account",
+        xtn_month as "Month",
+        coalesce(amount, 0) as "Amount"
+    from (
+        select
+            account,
+            xtn_month,
+            sum(amount) over (partition by account order by xtn_month) as amount
+        from (
+            select
+                account,
+                xtn_month,
+                coalesce(sum(amount), 0) as amount
+            from
+                account_months
+                left outer join ledger using (xtn_month, account)
+            where
+                (account ~ 'Assets' or account ~ 'Liabilities')
+                and account !~ 'Funds'
+                and account !~ 'Travel'
+                and (virtual is null or virtual = false)
+            group by
+                account,
+                xtn_month
+        ) x
+        order by
+            account,
+            xtn_month
+    ) x
+    where
+        xtn_month in (
+            date_trunc('month', cast(:to as date)),
+            date_trunc('month', cast(:to as date)) - '1 year'::interval, 
+            date_trunc('month', cast(:to as date)) - '2 year'::interval
+        )
+<% end %>                                                           
+<%= table(@report) %>

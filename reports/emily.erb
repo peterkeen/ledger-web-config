@@ -1,0 +1,41 @@
+<% @query = query do %>
+ with emily as
+ (
+     select
+         xtn_id,
+         xtn_date,
+         note,
+         amount,
+         sum(amount) over(rows unbounded preceding) as total
+     from
+         ledger
+     where
+         account = 'Assets:Receivable:Emily'
+ )
+ select
+     xtn_date as "Date",
+     note as "Payee",
+     amount as "Amount",
+     total as "Total"
+ from
+     emily
+ where
+     xtn_id >= (
+         select
+             max(xtn_id)
+         from
+             emily
+         where
+             ceil(total) = 0
+             and xtn_date between :from and :to
+     )
+     and xtn_date between :from and :to
+<% end %>
+<div class="page-header">
+  <h1>Emily</h1>
+</div>
+<div class="row">
+  <div class="span16">
+    <%= table @query %>
+  </div>
+</div>
