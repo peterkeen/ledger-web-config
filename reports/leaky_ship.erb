@@ -1,0 +1,26 @@
+<% @query = query({:pivot => "Year"}) do %>
+select
+    account as "Account",
+    xtn_year as "Year",
+    coalesce(sum(amount), 0) as "Amount"
+    from accounts_years left outer join (
+    select
+        xtn_year,
+        account,
+        amount
+    from
+        ledger
+) x using (account, xtn_year)
+where
+    account ~ '(Income|Expenses)'
+group by
+    account,
+    xtn_year
+order by
+    account,
+    xtn_year
+<% end %>
+<div class="page-header">
+  <h1>Leaky Ship</h1>
+</div>
+<%= table(@query, :links => {/\d{4}-\d{2}-\d{2}/ => '/reports/register?account=:0&year=:title'}) %>

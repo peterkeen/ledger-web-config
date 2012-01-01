@@ -27,14 +27,14 @@
 <% @current_accounts = query do %>
  with current_accounts as (select
      account,
-     bank - uncleared as bank,
+     bank as bank,
      virtual as real,
      uncleared as uncleared
  from (
  select
      account,
      sum(amount) as virtual,
-     sum(case when not virtual then amount else 0 end) as bank,
+     sum(case when cleared and not virtual then amount else 0 end) as bank,
      sum(case when not cleared then amount else 0 end) as uncleared
  from
      ledger
@@ -61,6 +61,7 @@
      sum(uncleared) as "Uncleared"
  from current_accounts    
 <% end %>
+
 <% @emergency_fund = query do %>
  select
      emergency_fund as "Emergency Fund",

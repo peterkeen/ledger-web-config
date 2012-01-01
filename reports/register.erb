@@ -1,0 +1,19 @@
+<% expect ['account', 'year'] %>
+<% @query = query do %>
+   select
+       xtn_date as "Date",
+       account as "Account",
+       note as "Payee",
+       amount as "Amount"
+   from
+       ledger
+   where
+       xtn_year = :year
+       and account = :account
+   order by
+       xtn_date
+<% end %>
+<div class="page-header">
+  <h1>Register</h1>
+</div>
+<%= table @query %>
