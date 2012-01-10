@@ -14,7 +14,7 @@
                 xtn_month,
                 coalesce(sum(amount), 0) as amount
             from
-                account_months
+                accounts_months
                 left outer join ledger using (xtn_month, account)
             where
                 (account ~ 'Assets' or account ~ 'Liabilities')
@@ -35,5 +35,8 @@
             date_trunc('month', cast(:to as date)) - '1 year'::interval, 
             date_trunc('month', cast(:to as date)) - '2 year'::interval
         )
-<% end %>                                                           
+<% end %>
+<div class="page-title">
+  <h1>Balance Sheet</h1>
+</div>
 <%= table(@report) %>
