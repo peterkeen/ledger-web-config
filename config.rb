@@ -20,4 +20,10 @@ LedgerWeb::Config.new do |config|
     end
 
   end
+
+  config.set :price_lookup_skip_symbols, ['$', 's']
+
+  config.add_hook :after_load do |db|
+    LedgerWeb::Database.load_prices
+  end
 end
