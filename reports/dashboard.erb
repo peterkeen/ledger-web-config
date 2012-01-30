@@ -129,7 +129,7 @@
      ledger
  where
      not cleared
-     and xtn_date between :from and :to
+     and xtn_date <= :to
      and account in ('Assets:Schwab:Checking', 'Liabilities:Amex')
  order by
      xtn_date
