@@ -70,12 +70,24 @@
  from (
      select
          xtn_month,
-         sum(amount) over (rows unbounded preceding) as emergency_fund
-     from
-         ledger
-     where
-         account = 'Assets:Funds:Emergency'
-     order by
+         max(emergency_fund) as emergency_fund
+     from (
+         select
+             xtn_month,
+             last_value(emergency_fund) over (partition by xtn_month) as emergency_fund
+         from (
+             select
+                 xtn_month,
+                 sum(amount) over (rows unbounded preceding) as emergency_fund
+             from
+                 ledger
+             where
+                 account = 'Assets:Funds:Emergency'
+             order by
+                 xtn_month
+         ) x
+     ) x
+     group by
          xtn_month
  ) em
  inner join (
@@ -115,6 +127,8 @@
      account ~ 'Assets:Funds'
  group by
      account
+ having
+     sum(amount) != 0
  order by
      account
 <% end %>
@@ -132,7 +146,9 @@
      and xtn_date <= :to
      and account in ('Assets:Schwab:Checking', 'Liabilities:Amex')
  order by
-     xtn_date
+     xtn_date,
+     account,
+     note
 <% end %>
 
 <div class="page-header">
