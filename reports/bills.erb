@@ -1,0 +1,27 @@
+<% @query = query do %>
+  select
+    xtn_month as "Month",
+    sum(case when account = 'Expenses:Utils:Electric' then amount else 0 end) as "Electric",
+    sum(case when account = 'Expenses:Utils:Gas' then amount else 0 end) as "Gas",
+    sum(case when account = 'Expenses:Insurance:Life' then amount else 0 end) as "Amfam",
+    sum(case when note = 'State Farm' and account ~ 'Expenses' then amount else 0 end) as "State Farm",
+    sum(case when account = 'Expenses:Cell Phone' then amount else 0 end) as "Cell",
+    sum(case when account = 'Expenses:Cable' then amount else 0 end) as "Cable",
+    sum(case when account = 'Expenses:Rent' then amount else 0 end) as "Rent"
+  from
+    ledger
+  where
+    xtn_month between :from and :to
+  group by
+    xtn_month
+  order by
+    xtn_month desc
+<% end %>
+<div class="page-header">
+  <h1>Bills</h1>
+</div>
+<div class="row">
+  <div class="span16">
+    <%= table @query, :pivot => 'account', :pivot_sort_order => 'asc' %>
+  </div>
+</div>
