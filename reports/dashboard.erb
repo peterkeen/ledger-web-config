@@ -156,18 +156,18 @@
 </div>
 <div class="row">
   <div class="span8">
-    <h3>Last Bills</h3>
-    <%= table(@last_bills) %>
+    <h3><a href="/reports/bills">Last Bills</a></h3>
+    <%= table(@last_bills, :links => {/Account/ => '/reports/register?account=:0&year=:1'}) %>
   </div>
   <div class="span8">
     <h3>Current Accounts</h3>
-    <%= table(@current_accounts) %>
+    <%= table(@current_accounts, :links => {/Account/ => '/reports/register?account=:0&year=:now'}) %>
   </div>
 </div>
 <div class="row">
   <div class="span8">
     <h3>Fund Levels</h3>
-    <%= table(@fund_levels) %>
+    <%= table(@fund_levels, :links => {/Account/ => '/reports/register?account=:0&year=:now'}) %>
   </div>
   <div class="span8">
     <h3>Emergency Fund Longevity</h3>
