@@ -4,11 +4,12 @@
        xtn_date as "Date",
        account as "Account",
        note as "Payee",
-       amount as "Amount"
+       amount as "Amount",
+       cleared as "Cleared"
    from
        ledger
    where
-       xtn_year = :year
+       xtn_year = date_trunc('year', cast(:year as date))
        and account = :account
    order by
        xtn_date
