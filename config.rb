@@ -1,3 +1,5 @@
+require 'digest/sha1'
+
 LedgerWeb::Config.new do |config|
   config.set :database_url, "postgres://localhost/ledger2"
   config.set :index_report, :dashboard
@@ -25,5 +27,31 @@ LedgerWeb::Config.new do |config|
 
   config.add_hook :after_load do |db|
     LedgerWeb::Database.load_prices
+  end
+
+  config.add_hook :before_load do |db|
+    config.set :load_start, Time.now.utc
+    d = Digest::SHA1.new
+    puts "Calculating checksum"
+
+    d.file("/Users/peter/ledger.txt")
+
+    config.set :checksum, d.hexdigest()
+    puts "Done calculating checksum"
+  end
+
+  config.add_hook :after_load do |db|
+    puts "Inserting update record"
+    now = Time.now.utc
+    start = config.get :load_start
+    checksum = config.get :checksum
+
+    puts "Doing insert"
+    db[:update_history].insert(
+      :updated_at => now,
+      :num_seconds => now - start,
+      :checksum => checksum
+    )
+    puts "Done Inserting Update Record"
   end
 end
