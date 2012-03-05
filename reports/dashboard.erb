@@ -151,8 +151,19 @@
      note
 <% end %>
 
+<% @last_updated_report = query do %>
+select
+    max(updated_at at time zone 'UTC')
+from
+    update_history
+<% end %>
+<% @last_updated = nil %>
+<% @last_updated_report.each_row do |row| %>
+<% @last_updated = row[0][0] %>
+<% end %>
+
 <div class="page-header">
-  <h1>Ledger Web</h1>
+  <h1>Ledger Web <small><%= @last_updated %></small></h1>
 </div>
 <div class="row">
   <div class="span8">
