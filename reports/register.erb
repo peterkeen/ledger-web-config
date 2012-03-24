@@ -1,18 +1,34 @@
 <% expect ['account', 'year'] %>
+<% default 'cleared', false %>
+<% default 'include_virtual', true %>
 <% @query = query do %>
    select
        xtn_date as "Date",
        account as "Account",
        note as "Payee",
        amount as "Amount",
-       cleared as "Cleared"
-   from
-       ledger
-   where
+       cleared as "Cleared",
+       running_sum as "Sum"
+   from (
+       select
+           xtn_date,
+           xtn_year,
+           account,
+           note,
+           amount,
+           cleared,
+           sum(amount) over (order by xtn_date rows unbounded preceding) as running_sum
+       from
+           ledger
+       where
+           account = :account
+           and (case when :cleared then cleared else true end)
+           and (case when :include_virtual then true else not virtual end)
+       order by
+           xtn_date
+    ) x
+    where
        xtn_year = date_trunc('year', cast(:year as date))
-       and account = :account
-   order by
-       xtn_date
 <% end %>
 <div class="page-header">
   <h1>Register</h1>
