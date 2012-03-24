@@ -1,0 +1,62 @@
+<% @report = query do %>
+    select
+        commodity as "Holding",
+        amount as "Amount",
+        cost as "Cost",
+        price * amount as "Current Value",
+        (price * amount) - cost as "Gain/Loss",
+        (((price * amount) - cost) / cost) * 100 as "Gain/Lost (pct)"
+    from (
+        select
+            commodity,
+            sum(amount) as amount,
+            sum(cost) as cost
+        from
+            ledger
+        where
+            commodity not in ('$', 'SWTSX')
+        group by
+            commodity
+    ) x inner join (
+        select
+            commodity,
+            price
+        from
+            prices
+        where
+            (commodity, price_date) in (
+                select
+                    commodity,
+                    max(price_date)
+                from
+                    prices
+                group by
+                    commodity
+            )
+        union all
+        select
+            commodity,
+            cost / amount as price
+        from
+            ledger
+        where
+            (commodity, xtn_date) in (
+                select
+                    commodity,
+                    max(xtn_date)
+                from
+                    ledger
+                where
+                    commodity ~ '^JH'
+                group by
+                    commodity
+            )
+        group by
+            commodity,
+            cost / amount
+    ) y using (commodity)
+    order by
+        commodity
+<% end %>
+
+<%= table(@report) %>
