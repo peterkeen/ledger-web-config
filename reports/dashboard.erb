@@ -66,7 +66,8 @@
  select
      emergency_fund as "Emergency Fund",
      expenses as "Trailing 12 Month Expenses",
-     emergency_fund / expenses as "Months"
+     emergency_fund / expenses as "Months",
+     (3 - (emergency_fund / expenses)) * expenses as "Needed"
  from (
      select
          xtn_month,
@@ -133,6 +134,35 @@
      account
 <% end %>
 
+<% @budget = query do %>
+select
+    xtn_month as "Month",
+    pay_period as "Pay Period",
+    sum(amount) as "Spent",
+    700 - sum(amount) as "Remaining"
+from
+    ledger
+where
+    account ~ 'Expenses'
+    and account !~ 'Depreciation'
+    and account !~ 'Taxes'
+    and account !~ 'Interest'
+    and account !~ 'Insurance'
+    and account !~ 'Travel'
+    and account !~ 'Rent'
+    and account !~ 'Medical'
+    and account !~ 'Electronics'
+    and account !~ 'Computer'
+    and not virtual
+group by
+    xtn_month,
+    pay_period
+order by
+    xtn_month desc,
+    pay_period desc
+limit 1
+<% end %>
+
 <% @uncleared = query do %>
  select
      xtn_date as "Date",
@@ -157,13 +187,31 @@ select
 from
     update_history
 <% end %>
-<% @last_updated = nil %>
-<% @last_updated_report.each_row do |row| %>
-<% @last_updated = row[0][0] %>
-<% end %>
+<%
+def relative_time(start_time)
+  diff_seconds = Time.now.utc - start_time
+  case diff_seconds
+  when 0 .. 59
+    return"#{diff_seconds.to_i} seconds ago"
+  when 60 .. (3600-1)
+    return "#{(diff_seconds/60).to_i} minutes ago"
+  when 3600 .. (3600*24-1)
+    return "#{(diff_seconds/360).to_i} hours ago"
+  when (3600*24) .. (3600*24*30) 
+    return "#{(diff_seconds/(3600*24)).to_i} days ago"
+  else
+    return start_time.strftime("%m/%d/%Y")
+  end
+end
+@last_updated = relative_time(@last_updated_report.rows[0][0])
+%>
+<% @budget_remaining = @budget.rows[0][3] %>
+<% @budget_color = @budget_remaining > 0 ? 'green' : 'red' %>
+<% @unbudgeted_remaining = [@current_accounts.rows[2][2] - @budget_remaining.abs, 0].max%>
+<% @unbudgeted_color = @unbudgeted_remaining > 0 ? 'green' : 'red' %>
 
 <div class="page-header">
-  <h1>Ledger Web <small><%= @last_updated %></small></h1>
+  <h1>Ledger Web <small>Updated <%= @last_updated %> (B: <span style="color: <%= @budget_color %>"><%= sprintf("$%0.2f", @budget_remaining) %></span> U: <span style="color: <%= @unbudgeted_color %>"><%= sprintf("$%0.2f", @unbudgeted_remaining) %></span>)</small></h1>
 </div>
 <div class="row">
   <div class="span8">
